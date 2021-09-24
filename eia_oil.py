@@ -10,8 +10,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 current = datetime.now().strftime('OIL_%Y-%m-%d.xls')
 start_time = time.time()
 
+#########################
 # CHANGE WAIT TIME BELOW
 wait_sleep_time = 10
+########################
 
 path = f'{dir_path}{os.sep}Data{os.sep}Oil{os.sep}'
 if not os.path.exists(path):
