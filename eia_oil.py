@@ -7,7 +7,8 @@ import shutil
 
 error = '503 - Sorry! This file is temporarily unavailable.'
 dir_path = os.path.dirname(os.path.realpath(__file__))
-current = datetime.now().strftime('OIL_%Y-%m-%d.xls')
+# current = datetime.now().strftime('OIL_%Y-%m-%d.xls')
+current = datetime.now().strftime('OIL_%Y-%m-%d.csv')
 start_time = time.time()
 
 #########################
@@ -38,11 +39,13 @@ def is_valid(content):
 
 while True:
     try:
-        content = requests.get('http://ir.eia.gov/wpsr/psw01.xls', allow_redirects=True).content
-        if is_valid(content):
-            open(path + current, 'wb').write(content)
+        response = requests.get('https://ir.eia.gov/wpsr/table1.csv', allow_redirects=True)
+        if response.status_code == 200:
+            open(path + current, 'wb').write(response.content)
             print(f'Found {path + current} with Data !!!')
             break
+        else:
+            print(error)
         print(f'Trying again in {wait_sleep_time} seconds!')
         time.sleep(wait_sleep_time)
     except:
