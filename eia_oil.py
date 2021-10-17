@@ -169,7 +169,7 @@ def generate_table(investing_output_result, csv_result):
         <td style="font-weight:bold">&nbsp;Total Stocks Ex-SPR</td>
         <td style="background-color: {color_based_on_value(csv_result['Total Stocks (Excluding SPR)'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Total Stocks (Excluding SPR)'][0])}</td>
         <td >&nbsp;</td>
-        <td style="background-color: {color_based_on_value(to_str_forecast_api_value(investing_output_result['API Weekly Crude Oil Stock'][0]))};">&nbsp;{to_forecast_api_value(investing_output_result['API Weekly Crude Oil Stock'][0])}</td>
+        <td style="background-color: {color_based_on_value(to_forecast_api_value(investing_output_result['API Weekly Crude Oil Stock'][0]))};">&nbsp;{to_forecast_api_value(investing_output_result['API Weekly Crude Oil Stock'][0])}</td>
         <td >&nbsp;</td>
         <td style="background-color: {color_based_on_value(csv_result['Total Stocks (Excluding SPR)'][1])};">&nbsp;{to_percentage(csv_result['Total Stocks (Excluding SPR)'][1])}</td>
         <td style="background-color: {color_based_on_value(total_stock_ex_spr_per_api)};">&nbsp;{to_percentage(total_stock_ex_spr_per_api)}</td>
@@ -256,7 +256,8 @@ while True:
             print(error)
         print(f'Trying again in {wait_sleep_time} seconds!')
         time.sleep(wait_sleep_time)
-    except:
+    except Exception as e:
+        print(e)
         print("Trying Again in 5 Seconds")
         if time.time() - start_time > 600:
             print('10 minutes have passed exiting')
