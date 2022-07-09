@@ -53,20 +53,20 @@ def database():
     return conn.cursor(cursor_factory=RealDictCursor)
 
 
-def is_valid(content):
-    temp_folder = f'{dir_path}{os.sep}.temp{os.sep}'
-    if not os.path.exists(temp_folder):
-        os.mkdir(temp_folder)
-    open(temp_folder + current, 'wb').write(content)
-    workbook = xlrd.open_workbook(temp_folder + current)
-    worksheet = workbook.sheet_by_index(0)
-    first_row_value = worksheet.row(1)[0].value
-    if first_row_value == error:
-        print(worksheet.row(1)[0].value)
-        shutil.rmtree(temp_folder)
-        return False
-    shutil.rmtree(temp_folder)
-    return True
+# def is_valid(content):
+#     temp_folder = f'{dir_path}{os.sep}.temp{os.sep}'
+#     if not os.path.exists(temp_folder):
+#         os.mkdir(temp_folder)
+#     open(temp_folder + current, 'wb').write(content)
+#     workbook = xlrd.open_workbook(temp_folder + current)
+#     worksheet = workbook.sheet_by_index(0)
+#     first_row_value = worksheet.row(1)[0].value
+#     if first_row_value == error:
+#         print(worksheet.row(1)[0].value)
+#         shutil.rmtree(temp_folder)
+#         return False
+#     shutil.rmtree(temp_folder)
+#     return True
 
 
 def read_csv_and_get_data():
