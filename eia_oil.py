@@ -1,17 +1,15 @@
+import csv
 import json
+import os
 import smtplib
+import time
+from datetime import datetime
 from decimal import Decimal
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import requests
-from datetime import datetime
-import os
-import time
-import xlrd
-import shutil
-import csv
 import psycopg2 as psycopg2
+import requests
 from psycopg2.extras import RealDictCursor
 
 error = '503 - Sorry! This file is temporarily unavailable.'
