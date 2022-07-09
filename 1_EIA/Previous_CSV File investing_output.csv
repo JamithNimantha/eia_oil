@@ -1,0 +1,5 @@
+date,time,Cur,Imp,Event,Actual,forecast,previous
+5/24/2022,16:30,USD,2,API Weekly Crude Oil Stock,-1.81M,-0.067M,0.567M
+5/25/2022,10:30,USD,3,Crude Oil Inventories,,-1.350M,-1.019M
+5/25/2022,10:30,USD,1,EIA Weekly Distillates Stocks,,0.990M,1.657M
+5/25/2022,10:30,USD,1,Gasoline Inventories,,0.533M,-0.482M

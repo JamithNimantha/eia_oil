@@ -1,0 +1,9 @@
+"event_date","event_time","event_name","actual","forecast","previous"
+"2022-06-07","16:30:00","API weekly heating oil *",0.1540,NULL,0.5500
+"2022-06-07","16:30:00","API wkly crude Stk *",1.8450,-2.2500,-1.1810
+"2022-06-07","16:30:00","API Wkly dist. Stk *",3.3760,0.7000,0.8580
+"2022-06-07","16:30:00","API Wkly gsln stk *",1.8210,1.5500,-0.2560
+"2022-06-08","10:30:00","EIA Weekly Heatoil Stock*",NULL,NULL,0.2650
+"2022-06-08","10:30:00","EIA Wkly Crude Stk*",NULL,-2.2500,-5.0680
+"2022-06-08","10:30:00","EIA Wkly Dist. Stk*",NULL,0.7000,-0.5300
+"2022-06-08","10:30:00","EIA Wkly Gsln Stk*",NULL,1.5500,-0.7110
