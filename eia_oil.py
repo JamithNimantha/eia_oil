@@ -92,7 +92,7 @@ def read_csv_and_get_data():
 def is_null(value):
     if value is None:
         return Decimal(0.00)
-    return value
+    return value * 1000
 
 
 def fetch_eco_view_data():
