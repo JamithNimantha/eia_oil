@@ -1,4 +1,5 @@
 Value Name,Value
+Wait till for starting the Scrapping of EIA Website,10:30 AM
 Email SMTP Server Name / IP Address,smtp.mailtrap.io
 Email SMTP Server Port,587
 Email SMTP ID,a230265b429910
