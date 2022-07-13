@@ -207,6 +207,7 @@ def to_percentage(value):
 
 # return
 def to_double(value):
+    value = value.replace(",", "")
     return float(value) * 1000
 
 
@@ -243,14 +244,14 @@ def formula_forecast(diff, forecast, api):
         return ((float(diff)) - (float(forecast))) / abs(float(forecast)) * 100
 
 
-def formula_last_wk(diff_last, diff_this):
+def formula_last_wk(diff, last_wk):
     # VJ Change
     #    return ((float(diff)) - (float(previous))) / abs(float(api))
     #    print('previous: ',previous)
-    if diff_this == 0:
+    if diff == 0:
         return float(100)
     else:
-        return ((float(diff_this)) - (float(diff_last))) / abs(float(diff_last)) * 100
+        return ((float(diff)) - (float(last_wk))) / abs(float(last_wk))
 
 
 def formula_percent_change(difference, last_wk):
@@ -266,7 +267,7 @@ def generate_table(last_week, eco_view, csv_result):
                                                  eco_view['Crude Oil'][0], eco_view['Crude Oil'][2])
     crud_oil_spr_per_api = formula_api(to_double(csv_result['Commercial (Excluding SPR)'][0]),
                                        eco_view['Crude Oil'][2])
-    crud_oil_spr_per_last_wk = formula_last_wk(to_double(csv_result['Commercial (Excluding SPR)'][0]), to_double(last_week['Commercial (Excluding SPR)'][0]))
+    crud_oil_spr_per_last_wk = formula_last_wk(to_double(csv_result['Commercial (Excluding SPR)'][0]), to_double(csv_result['Commercial (Excluding SPR)'][3]))
     crud_oil_spr_per_change = formula_percent_change(to_double(csv_result['Commercial (Excluding SPR)'][0]), to_double(csv_result['Commercial (Excluding SPR)'][3]))
 
     gasoline_per_forecast = formula_forecast(to_double(csv_result['Total Motor Gasoline'][0]),
@@ -274,14 +275,13 @@ def generate_table(last_week, eco_view, csv_result):
                                              eco_view['Total Motor Gasoline'][2])
     gasoline_per_api = formula_api(to_double(csv_result['Total Motor Gasoline'][0]),
                                    eco_view['Total Motor Gasoline'][2])
-    gasoline_per_last_wk = formula_last_wk(to_double(csv_result['Total Motor Gasoline'][0]) ,to_double(last_week['Total Motor Gasoline'][0]))
-    gasoline_per_change = formula_percent_change(to_double(csv_result['Total Motor Gasoline'][0]) ,to_double(csv_result['Total Motor Gasoline'][3]))
+    gasoline_per_last_wk = formula_last_wk(to_double(csv_result['Total Motor Gasoline'][0]), to_double(csv_result['Total Motor Gasoline'][3]))
+    gasoline_per_change = formula_percent_change(to_double(csv_result['Total Motor Gasoline'][0]), to_double(csv_result['Total Motor Gasoline'][3]))
 
 
-    heating_oil_forecast = formula_forecast(to_double(csv_result['Heating Oil'][0]), eco_view['Heating Oil'][0],
-                                            eco_view['Heating Oil'][2])
+    heating_oil_forecast = formula_forecast(to_double(csv_result['Heating Oil'][0]), eco_view['Heating Oil'][0], eco_view['Heating Oil'][2])
     heating_oil_per_api = formula_api(to_double(csv_result['Heating Oil'][0]), eco_view['Heating Oil'][2])
-    heating_oil_per_last_wk = formula_last_wk(to_double(csv_result['Heating Oil'][0]), to_double(last_week['Heating Oil'][0]))
+    heating_oil_per_last_wk = formula_last_wk(to_double(csv_result['Heating Oil'][0]), to_double(csv_result['Heating Oil'][3]))
     heating_oil_per_change = formula_percent_change(to_double(csv_result['Heating Oil'][0]), to_double(csv_result['Heating Oil'][3]))
 
     # total_stock_ex_spr_per_api = formula(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), investing_output_result['API Weekly Crude Oil Stock'])
@@ -307,7 +307,7 @@ def generate_table(last_week, eco_view, csv_result):
     distillate_per_last_wk = formula_last_wk(to_double(csv_result['Distillate Fuel Oil'][0]), to_double(last_week['Distillate Fuel Oil'][0]))
 
     crude_oil_total_last_wk = formula_last_wk(to_double(csv_result['Crude Oil'][0]), to_double(last_week['Crude Oil'][0]))
-    total_stock_ex_spr_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), to_double(last_week['Total Stocks (Excluding SPR)'][0]))
+    total_stock_ex_spr_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), to_double(csv_result['Total Stocks (Excluding SPR)'][3]))
     total_stocks_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Including SPR)'][0]), to_double(last_week['Total Stocks (Including SPR)'][0]))
 
     # print('dist last wk %: ', distillate_per_last_wk)
