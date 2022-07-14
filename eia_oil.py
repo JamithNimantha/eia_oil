@@ -122,7 +122,7 @@ def fetch_eco_view_data():
                     forecast,
                     previous
                     FROM tradingview_eco
-                    WHERE event_date >= CURRENT_DATE - 400 AND
+                    WHERE event_date >= CURRENT_DATE - 7 AND
                     event_date <= CURRENT_DATE AND
                     event_name like %(event_name_)s
                     ORDER BY event_date, event_time, event_name;
@@ -130,45 +130,51 @@ def fetch_eco_view_data():
 
     # data = cursor.fetchall()
     result = {}
+    mapped = {}
+    db_map = csv.reader(open(f'Control{os.sep}corresponding_db_event_names.csv'))
+    next(db_map)
 
-    cursor.execute(sql_query, {'event_name_': 'EIA Wkly Crude Stk%'})
+    for val in db_map:
+        mapped[val[0]] = [val[1], val[2]]
+
+    cursor.execute(sql_query, {'event_name_': mapped['Crude Oil ex-SPR'][1]})
     weekly = cursor.fetchone()
     if weekly is None:
-        raise Exception('No Data for EIA Wkly Crude Stk%')
-    cursor.execute(sql_query, {'event_name_': 'API wkly crude Stk%'})
+        raise Exception('No Data for' + mapped['Crude Oil ex-SPR'][1])
+    cursor.execute(sql_query, {'event_name_': mapped['Crude Oil ex-SPR'][0]})
     api = cursor.fetchone()
     if api is None:
-        raise Exception('No Data for API wkly crude Stk%')
+        raise Exception('No Data for ' + mapped['Crude Oil ex-SPR'][0])
     result['Crude Oil'] = [is_null(weekly['forecast']), is_null(weekly['previous']), is_null(api['actual'])]
 
-    cursor.execute(sql_query, {'event_name_': 'EIA Wkly Gsln Stk%'})
+    cursor.execute(sql_query, {'event_name_': mapped['Gasoline'][1]})
     weekly = cursor.fetchone()
     if weekly is None:
-        raise Exception('No Data for EIA Wkly Gsln Stk%')
-    cursor.execute(sql_query, {'event_name_': 'API Wkly gsln stk%'})
+        raise Exception('No Data for ' + mapped['Gasoline'][1])
+    cursor.execute(sql_query, {'event_name_': mapped['Gasoline'][0]})
     api = cursor.fetchone()
     if weekly is None:
-        raise Exception('No Data for API Wkly gsln stk%')
+        raise Exception('No Data for ' + mapped['Gasoline'][0])
     result['Total Motor Gasoline'] = [is_null(weekly['forecast']), is_null(weekly['previous']), is_null(api['actual'])]
 
-    cursor.execute(sql_query, {'event_name_': 'EIA Weekly Heatoil Stock%'})
+    cursor.execute(sql_query, {'event_name_': mapped['Heating Oil'][1]})
     weekly = cursor.fetchone()
     if weekly is None:
-        raise Exception('No Data for EIA Weekly Heatoil Stock%')
-    cursor.execute(sql_query, {'event_name_': 'API weekly heating oil%'})
+        raise Exception('No Data for ' + mapped['Heating Oil'][1])
+    cursor.execute(sql_query, {'event_name_': mapped['Heating Oil'][0]})
     api = cursor.fetchone()
     if api is None:
-        raise Exception('No Data for API weekly heating oil%')
+        raise Exception('No Data for ' + mapped['Heating Oil'][0])
     result['Heating Oil'] = [is_null(weekly['forecast']), is_null(weekly['previous']), is_null(api['actual'])]
 
-    cursor.execute(sql_query, {'event_name_': 'EIA Wkly Dist. Stk%'})
+    cursor.execute(sql_query, {'event_name_': mapped['EIA Weekly Distillates'][1]})
     weekly = cursor.fetchone()
     if weekly is None:
-        raise Exception('No Data for EIA Wkly Dist. Stk%')
-    cursor.execute(sql_query, {'event_name_': 'API Wkly dist. Stk%'})
+        raise Exception('No Data for ' + mapped['EIA Weekly Distillates'][1])
+    cursor.execute(sql_query, {'event_name_': mapped['EIA Weekly Distillates'][0]})
     api = cursor.fetchone()
     if api is None:
-        raise Exception('No Data for API Wkly dist. Stk%')
+        raise Exception('No Data for ' + mapped['EIA Weekly Distillates'][1])
     result['Distillate Fuel Oil'] = [is_null(weekly['forecast']), is_null(weekly['previous']), is_null(api['actual'])]
 
     # result['Total Stocks (Including SPR)'] = [row[3], row[4], row[7]]
@@ -229,7 +235,7 @@ def formula_api(diff, api):
     #    print('Diff: ',diff)
     #    print('API: ',api)
     if api == 0:
-        return float(100)
+        return float(100 * diff)
     else:
         return ((float(diff)) - (float(api))) / abs(float(api)) * 100
 
@@ -239,80 +245,59 @@ def formula_forecast(diff, forecast, api):
     #    return ((float(diff)) - (float(forecast))) / abs(float(api))
     #    print('forecast: ',forecast)
     if forecast == 0:
-        return float(100)
+        return float(100 * diff)
     else:
         return ((float(diff)) - (float(forecast))) / abs(float(forecast)) * 100
 
 
-def formula_last_wk(diff, last_wk):
-    # VJ Change
-    #    return ((float(diff)) - (float(previous))) / abs(float(api))
-    #    print('previous: ',previous)
-    if diff == 0:
-        return float(100)
+def formula_last_wk(new_diff, old_diff):
+    if old_diff == 0:
+        return float(100 * new_diff)
     else:
-        return ((float(diff)) - (float(last_wk))) / abs(float(last_wk))
+        return ((float(new_diff)) - (float(old_diff))) / abs(float(old_diff)) * 100
 
 
 def formula_percent_change(difference, last_wk):
-    if difference == 0:
-        return float(100)
+    if last_wk == 0:
+        return float(100 * difference)
     else:
-        return ((float(difference)) / abs(float(last_wk))) * 100
+        return (float(difference) / float(last_wk)) * 100
 
 
+# [row[3], row[4], row[7], row[2]]
 def generate_table(last_week, eco_view, csv_result):
 
-    crud_oil_spr_per_forecast = formula_forecast(to_double(csv_result['Commercial (Excluding SPR)'][0]),
-                                                 eco_view['Crude Oil'][0], eco_view['Crude Oil'][2])
-    crud_oil_spr_per_api = formula_api(to_double(csv_result['Commercial (Excluding SPR)'][0]),
-                                       eco_view['Crude Oil'][2])
-    crud_oil_spr_per_last_wk = formula_last_wk(to_double(csv_result['Commercial (Excluding SPR)'][0]), to_double(csv_result['Commercial (Excluding SPR)'][3]))
+    crud_oil_spr_per_forecast = formula_forecast(to_double(csv_result['Commercial (Excluding SPR)'][0]), eco_view['Crude Oil'][0], eco_view['Crude Oil'][2])
+    crud_oil_spr_per_api = formula_api(to_double(csv_result['Commercial (Excluding SPR)'][0]), eco_view['Crude Oil'][2])
+    crud_oil_spr_per_last_wk = formula_last_wk(to_double(csv_result['Commercial (Excluding SPR)'][0]), to_double(last_week['Commercial (Excluding SPR)'][0]))
     crud_oil_spr_per_change = formula_percent_change(to_double(csv_result['Commercial (Excluding SPR)'][0]), to_double(csv_result['Commercial (Excluding SPR)'][3]))
 
-    gasoline_per_forecast = formula_forecast(to_double(csv_result['Total Motor Gasoline'][0]),
-                                             eco_view['Total Motor Gasoline'][0],
-                                             eco_view['Total Motor Gasoline'][2])
-    gasoline_per_api = formula_api(to_double(csv_result['Total Motor Gasoline'][0]),
-                                   eco_view['Total Motor Gasoline'][2])
-    gasoline_per_last_wk = formula_last_wk(to_double(csv_result['Total Motor Gasoline'][0]), to_double(csv_result['Total Motor Gasoline'][3]))
+    gasoline_per_forecast = formula_forecast(to_double(csv_result['Total Motor Gasoline'][0]), eco_view['Total Motor Gasoline'][0],eco_view['Total Motor Gasoline'][2])
+    gasoline_per_api = formula_api(to_double(csv_result['Total Motor Gasoline'][0]), eco_view['Total Motor Gasoline'][2])
+    gasoline_per_last_wk = formula_last_wk(to_double(csv_result['Total Motor Gasoline'][0]), to_double(last_week['Total Motor Gasoline'][0]))
     gasoline_per_change = formula_percent_change(to_double(csv_result['Total Motor Gasoline'][0]), to_double(csv_result['Total Motor Gasoline'][3]))
 
 
     heating_oil_forecast = formula_forecast(to_double(csv_result['Heating Oil'][0]), eco_view['Heating Oil'][0], eco_view['Heating Oil'][2])
     heating_oil_per_api = formula_api(to_double(csv_result['Heating Oil'][0]), eco_view['Heating Oil'][2])
-    heating_oil_per_last_wk = formula_last_wk(to_double(csv_result['Heating Oil'][0]), to_double(csv_result['Heating Oil'][3]))
+    heating_oil_per_last_wk = formula_last_wk(to_double(csv_result['Heating Oil'][0]), to_double(last_week['Heating Oil'][0]))
     heating_oil_per_change = formula_percent_change(to_double(csv_result['Heating Oil'][0]), to_double(csv_result['Heating Oil'][3]))
 
     # total_stock_ex_spr_per_api = formula(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), investing_output_result['API Weekly Crude Oil Stock'])
 
-    distillate_forecast = formula_forecast(to_double(csv_result['Distillate Fuel Oil'][0]),
-                                           eco_view['Distillate Fuel Oil'][0],
-                                           eco_view['Distillate Fuel Oil'][2])
-    # VJ CHANGE
-    # distillate_per_api = formula_api(to_double(csv_result['Heating Oil'][0]), eco_view['Distillate Fuel Oil'][2])
-    distillate_per_api = formula_api(to_double(csv_result['Distillate Fuel Oil'][0]),
-                                     eco_view['Distillate Fuel Oil'][2])
-    # print('dist api %: ', distillate_per_api)
-    # print('dist diff: ', csv_result['Heating Oil'][0])
-    # print('dist API: ', eco_view['Distillate Fuel Oil'][2])
-
-    # VJ CHANGE
-    # distillate_per_last_wk = formula_last_wk(to_double(csv_result['Heating Oil'][0]),
-    # eco_view['Distillate Fuel Oil'][1],
-    # eco_view['Distillate Fuel Oil'][2])
-    distillate_per_last_wk = formula_last_wk(to_double(csv_result['Distillate Fuel Oil'][0]), to_double(last_week['Distillate Fuel Oil'][0]))
+    distillate_forecast = formula_forecast(to_double(csv_result['Distillate Fuel Oil'][0]), eco_view['Distillate Fuel Oil'][0], eco_view['Distillate Fuel Oil'][2])
+    distillate_per_api = formula_api(to_double(csv_result['Distillate Fuel Oil'][0]), eco_view['Distillate Fuel Oil'][2])
     distillate_per_change = formula_percent_change(to_double(csv_result['Distillate Fuel Oil'][0]), to_double(csv_result['Distillate Fuel Oil'][3]))
-
     distillate_per_last_wk = formula_last_wk(to_double(csv_result['Distillate Fuel Oil'][0]), to_double(last_week['Distillate Fuel Oil'][0]))
 
     crude_oil_total_last_wk = formula_last_wk(to_double(csv_result['Crude Oil'][0]), to_double(last_week['Crude Oil'][0]))
-    total_stock_ex_spr_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), to_double(csv_result['Total Stocks (Excluding SPR)'][3]))
-    total_stocks_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Including SPR)'][0]), to_double(last_week['Total Stocks (Including SPR)'][0]))
+    crude_oil_total_change = formula_percent_change(to_double(csv_result['Crude Oil'][0]), to_double(csv_result['Crude Oil'][3]))
 
-    # print('dist last wk %: ', distillate_per_last_wk)
-    # print('dist diff: ', csv_result['Heating Oil'][0])
-    # print('dist Previous: ', eco_view['Distillate Fuel Oil'][1])
+    total_stock_ex_spr_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), to_double(last_week['Total Stocks (Excluding SPR)'][0]))
+    total_stock_ex_spr_change = formula_percent_change(to_double(csv_result['Total Stocks (Excluding SPR)'][0]), to_double(csv_result['Total Stocks (Excluding SPR)'][3]))
+
+    total_stocks_last_wk = formula_last_wk(to_double(csv_result['Total Stocks (Including SPR)'][0]), to_double(last_week['Total Stocks (Including SPR)'][0]))
+    total_stocks_change = formula_percent_change(to_double(csv_result['Total Stocks (Including SPR)'][0]), to_double(csv_result['Total Stocks (Including SPR)'][3]))
 
     html = f"""<table style="width: 100%;border-collapse: collapse;border: 5px solid black; border-style: solid" border="5" cellpadding="5" >
     <tbody>
@@ -321,22 +306,20 @@ def generate_table(last_week, eco_view, csv_result):
         <td>&nbsp;<strong>Difference</strong></td>
         <td>&nbsp;<strong>Forecast</strong></td>
         <td>&nbsp;<strong>API</strong></td>
-        <td>&nbsp;<strong>Last Wk</strong></td>
+        <td>&nbsp;<strong>% Vs Last Wk</strong></td>
         <td>&nbsp;<strong>% Change</strong></td>
-        <td>&nbsp;<strong>% vs Forecast</strong></td>
-        <td>&nbsp;<strong>% vs Last Wk</strong></td>
-        <td><strong>% vs API</strong></td>
-        <td>&nbsp;<strong>% vs Last Yr</strong></td>
+        <td>&nbsp;<strong>% Vs Forecast</strong></td>
+        <td><strong>% Vs API</strong></td>
+        <td>&nbsp;<strong>% Vs Last Yr</strong></td>
     </tr>
     <tr style="font-weight:bold">
         <td>&nbsp;Crude Oil Ex-SPR</td>
         <td style="background-color: {color_based_on_value(csv_result['Commercial (Excluding SPR)'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Commercial (Excluding SPR)'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Crude Oil'][0])};">&nbsp;{to_str_forecast_api_value(eco_view['Crude Oil'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Crude Oil'][2])};">&nbsp;{to_str_forecast_api_value(eco_view['Crude Oil'][2])}</td> 
-        <td style="background-color: {color_based_on_value(csv_result['Commercial (Excluding SPR)'][3])};">&nbsp;{to_str_forecast_api_value(csv_result['Commercial (Excluding SPR)'][3])}</td>
-        <td style="background-color: {color_based_on_value(crud_oil_spr_per_change)};">&nbsp;{to_str_forecast_api_value(crud_oil_spr_per_change)}</td> 
-        <td style="background-color: {color_based_on_value(crud_oil_spr_per_forecast)};">&nbsp;{to_percentage(crud_oil_spr_per_forecast)}</td>
         <td style="background-color: {color_based_on_value(crud_oil_spr_per_last_wk)};">&nbsp;{to_percentage(crud_oil_spr_per_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(crud_oil_spr_per_change)};">&nbsp;{to_percentage(crud_oil_spr_per_change)}</td> 
+        <td style="background-color: {color_based_on_value(crud_oil_spr_per_forecast)};">&nbsp;{to_percentage(crud_oil_spr_per_forecast)}</td>
         <td style="background-color: {color_based_on_value(crud_oil_spr_per_api)};">&nbsp;{to_percentage(crud_oil_spr_per_api)}</td>
         <td style="background-color: {color_based_on_value(csv_result['Commercial (Excluding SPR)'][2])};">&nbsp;{to_percentage(csv_result['Commercial (Excluding SPR)'][2])}</td>
     </tr>
@@ -345,10 +328,9 @@ def generate_table(last_week, eco_view, csv_result):
         <td style="background-color: {color_based_on_value(csv_result['Total Motor Gasoline'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Total Motor Gasoline'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Total Motor Gasoline'][0])};">&nbsp;{to_str_forecast_api_value(eco_view['Total Motor Gasoline'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Total Motor Gasoline'][2])};">&nbsp;{to_str_forecast_api_value(eco_view['Total Motor Gasoline'][2])}</td>
-        <td style="background-color: {color_based_on_value(csv_result['Total Motor Gasoline'][3])};">&nbsp;{to_str_forecast_api_value(csv_result['Total Motor Gasoline'][3])}</td>
-        <td style="background-color: {color_based_on_value(gasoline_per_change)};">&nbsp;{to_str_forecast_api_value(gasoline_per_change)}</td> 
-        <td style="background-color: {color_based_on_value(gasoline_per_forecast)};">&nbsp;{to_percentage(gasoline_per_forecast)}</td>
         <td style="background-color: {color_based_on_value(gasoline_per_last_wk)};">&nbsp;{to_percentage(gasoline_per_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(gasoline_per_change)};">&nbsp;{to_percentage(gasoline_per_change)}</td> 
+        <td style="background-color: {color_based_on_value(gasoline_per_forecast)};">&nbsp;{to_percentage(gasoline_per_forecast)}</td>
         <td style="background-color: {color_based_on_value(gasoline_per_api)};">&nbsp;{to_percentage(gasoline_per_api)}</td>
         <td style="background-color: {color_based_on_value(csv_result['Total Motor Gasoline'][2])};">&nbsp;{to_percentage(csv_result['Total Motor Gasoline'][2])}</td>
     </tr>
@@ -357,10 +339,9 @@ def generate_table(last_week, eco_view, csv_result):
         <td style="background-color: {color_based_on_value(csv_result['Heating Oil'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Heating Oil'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Heating Oil'][0])};">&nbsp;{to_str_forecast_api_value(eco_view['Heating Oil'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Heating Oil'][2])};">&nbsp;{to_str_forecast_api_value(eco_view['Heating Oil'][2])}</td>
-        <td style="background-color: {color_based_on_value(csv_result['Heating Oil'][3])};">&nbsp;{to_str_forecast_api_value(csv_result['Heating Oil'][3])}</td>
-        <td style="background-color: {color_based_on_value(heating_oil_per_change)};">&nbsp;{to_str_forecast_api_value(heating_oil_per_change)}</td> 
-        <td style="background-color: {color_based_on_value(heating_oil_forecast)};">&nbsp;{to_percentage(heating_oil_forecast)}</td>
         <td style="background-color: {color_based_on_value(heating_oil_per_last_wk)};">&nbsp;{to_percentage(heating_oil_per_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(heating_oil_per_change)};">&nbsp;{to_percentage(heating_oil_per_change)}</td> 
+        <td style="background-color: {color_based_on_value(heating_oil_forecast)};">&nbsp;{to_percentage(heating_oil_forecast)}</td>
         <td style="background-color: {color_based_on_value(heating_oil_per_api)};">&nbsp;{to_percentage(heating_oil_per_api)}</td>
         <td style="background-color: {color_based_on_value(csv_result['Heating Oil'][2])};">&nbsp;{to_percentage(csv_result['Heating Oil'][2])}</td>
     </tr>
@@ -369,10 +350,9 @@ def generate_table(last_week, eco_view, csv_result):
         <td style="background-color: {color_based_on_value(csv_result['Crude Oil'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Crude Oil'][0])}</td>
         <td >&nbsp;</td>
         <td >&nbsp;</td>
-        <td >&nbsp;</td>
-        <td >&nbsp;</td>
-        <td >&nbsp;</td>
         <td style="background-color: {color_based_on_value(crude_oil_total_last_wk)};">&nbsp;{to_percentage(crude_oil_total_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(crude_oil_total_change)};">&nbsp;{to_percentage(crude_oil_total_change)}</td>
+        <td >&nbsp;</td>
         <td >&nbsp;</td>
         <td style="background-color: {color_based_on_value(csv_result['Crude Oil'][2])};">&nbsp;{to_percentage(csv_result['Crude Oil'][2])}</td>
     </tr>
@@ -381,10 +361,9 @@ def generate_table(last_week, eco_view, csv_result):
         <td style="background-color: {color_based_on_value(csv_result['Total Stocks (Excluding SPR)'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Total Stocks (Excluding SPR)'][0])}</td>
         <td >&nbsp;</td>
         <td >&nbsp;</td>
-        <td >&nbsp;</td>
-        <td >&nbsp;</td>
-        <td >&nbsp;</td>
         <td style="background-color: {color_based_on_value(total_stock_ex_spr_last_wk)};">&nbsp;{to_percentage(total_stock_ex_spr_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(total_stock_ex_spr_change)};">&nbsp;{to_percentage(total_stock_ex_spr_change)}</td>
+        <td >&nbsp;</td>
         <td >&nbsp;</td>
         <td style="background-color: {color_based_on_value(csv_result['Total Stocks (Excluding SPR)'][2])};">&nbsp;{to_percentage(csv_result['Total Stocks (Excluding SPR)'][2])}</td>
     </tr>
@@ -393,10 +372,9 @@ def generate_table(last_week, eco_view, csv_result):
         <td style="background-color: {color_based_on_value(csv_result['Total Stocks (Including SPR)'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Total Stocks (Including SPR)'][0])}</td>
         <td >&nbsp;</td>
         <td >&nbsp;</td>
+        <td style="background-color: {color_based_on_value(total_stocks_last_wk)};">&nbsp;{to_percentage(total_stocks_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(total_stocks_change)};">&nbsp;{to_percentage(total_stocks_change)}</td>
         <td >&nbsp;</td>
-        <td >&nbsp;</td>
-        <td >&nbsp;</td>
-        <td style="background-color: {color_based_on_value(total_stock_ex_spr_last_wk)};">&nbsp;{to_percentage(total_stocks_last_wk)}</td>
         <td >&nbsp;</td>
         <td style="background-color: {color_based_on_value(csv_result['Total Stocks (Including SPR)'][2])};">&nbsp;{to_percentage(csv_result['Total Stocks (Including SPR)'][2])}</td>
     </tr>
@@ -405,10 +383,9 @@ def generate_table(last_week, eco_view, csv_result):
         <td style="background-color: {color_based_on_value(csv_result['Distillate Fuel Oil'][0])};">&nbsp;{to_currency_format_without_decimals(csv_result['Distillate Fuel Oil'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Distillate Fuel Oil'][0])};">&nbsp;{to_str_forecast_api_value(eco_view['Distillate Fuel Oil'][0])}</td>
         <td style="background-color: {color_based_on_value(eco_view['Distillate Fuel Oil'][2])};">&nbsp;{to_str_forecast_api_value(eco_view['Distillate Fuel Oil'][2])}</td>
-        <td style="background-color: {color_based_on_value(distillate_forecast)};">&nbsp;{to_percentage(distillate_forecast)}</td>
-        <td style="background-color: {color_based_on_value(csv_result['Distillate Fuel Oil'][3])};">&nbsp;{to_str_forecast_api_value(csv_result['Distillate Fuel Oil'][3])}</td>
-        <td style="background-color: {color_based_on_value(distillate_per_change)};">&nbsp;{to_str_forecast_api_value(distillate_per_change)}</td> 
         <td style="background-color: {color_based_on_value(distillate_per_last_wk)};">&nbsp;{to_percentage(distillate_per_last_wk)}</td>
+        <td style="background-color: {color_based_on_value(distillate_per_change)};">&nbsp;{to_percentage(distillate_per_change)}</td> 
+        <td style="background-color: {color_based_on_value(distillate_forecast)};">&nbsp;{to_percentage(distillate_forecast)}</td>
         <td style="background-color: {color_based_on_value(distillate_per_api)};">&nbsp;{to_percentage(distillate_per_api)}</td>
         <td style="background-color: {color_based_on_value(csv_result['Distillate Fuel Oil'][2])};">&nbsp;{to_percentage(csv_result['Distillate Fuel Oil'][2])}</td>
     </tr>
@@ -488,14 +465,16 @@ def read_last_week_csv():
 
 control = dict(csv.reader(open(f'Control{os.sep}Control.csv')))
 
+debug = False  # PROD = FALSE
+
 try:
-    last_week_csv = read_csv_and_get_data()
+    last_week_csv = read_last_week_csv()
     copy2(path + current, path + 'OIL_last_week.csv')
     eco_view_data = fetch_eco_view_data()
     while True:
         cur_time = dt.datetime.strptime(dt.datetime.now().strftime('%I:%M %p'), '%I:%M %p').time()
         ctr_time = dt.datetime.strptime(control['Wait till for starting the Scrapping of EIA Website'], '%I:%M %p').time()
-        if cur_time >= ctr_time:
+        if debug or cur_time >= ctr_time:
             response = requests.get('https://ir.eia.gov/wpsr/table1.csv', allow_redirects=True)
             if response.status_code == 200:
                 open(path + current, 'wb').write(response.content)
